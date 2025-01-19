@@ -218,23 +218,36 @@ int executor(t_tree *node, char **envp)
 
 //fin lo de
 
+int	search_var(char **envp, const char* var)
+{
+	int pos;
+	char *subpath;
+
+	pos = 0;
+	while (envp[pos])
+	{
+		subpath = ft_substr(envp[pos], 0, 4);
+		if (ft_strcmp(subpath, var) == 0)
+		{
+			free(subpath);
+			return (pos);
+		}
+		free(subpath);
+		pos++;
+	}
+	return (-1);
+}
+
 char *ft_getenv(const char *name, char *envp[])
 {
-	if (!envp)
-		return NULL;
-    if (strcmp(name, "VAR") == 0)
-		return "value";
-    if (strcmp(name, "VAR2") == 0)
-		return "value2";
-    if (strcmp(name, "EMPTY") == 0)
-		return "";
-    if (strcmp(name, "LONG") == 0)
-		return "_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value_this_is_a_very_long_value";
-    if (strcmp(name, "SPACE") == 0)
-		return "value with spaces";
-    if (strcmp(name, "QUOTES") == 0)
-		return "value'with'quotes";
-    return NULL;
+	int pos;
+	char *word_start;
+
+	pos = search_var(envp, name);
+	if (pos == -1)
+		return(NULL);
+	word_start = ft_strchr(envp[pos], '=') + 1;
+	return(word_start);
 }
 
 //SOLO PARA PRUEBAS no requiere implementacion

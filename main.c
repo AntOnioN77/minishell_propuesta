@@ -6,7 +6,7 @@
 /*   By: antofern <antofern@student.42madrid.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/16 12:20:35 by antofern          #+#    #+#             */
-/*   Updated: 2025/01/19 22:13:49 by antofern         ###   ########.fr       */
+/*   Updated: 2025/01/19 23:32:47 by antofern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv, char **envp)
 		tree = processline(line);
 		if (tree == NULL)
 		{
-			perror("processline:");
+//			perror("processline:");
 			rl_clear_history();
 			free(line);
 			return (1);
