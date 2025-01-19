@@ -6,7 +6,7 @@
 /*   By: antofern <antofern@student.42madrid.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/06 15:45:35 by antofern          #+#    #+#             */
-/*   Updated: 2025/01/16 13:23:53 by antofern         ###   ########.fr       */
+/*   Updated: 2025/01/19 23:22:41 by antofern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,6 +110,70 @@ static int	expand_task(t_task *node, char *envp[])
 	return(0);
 }
 
+
+
+//TEMPORAL PARA TEST
+
+void unquote(char *str) {
+    if (!str || !*str) return;  // Validación de entrada
+
+    int len = strlen(str);
+    char quote_type = 0;  // Para rastrear el tipo de comilla exterior
+    int read_pos = 0;     // Posición de lectura
+    int write_pos = 0;    // Posición de escritura
+
+    // Detectar si hay comillas exteriores y su tipo
+    if ((str[0] == '"' || str[0] == '\'') && str[len-1] == str[0]) {
+        quote_type = str[0];
+        read_pos = 1;
+        len--;  // Ignorar la última comilla
+    }
+
+    while (read_pos < len) {
+        // Si encontramos una comilla diferente a la exterior, la preservamos
+        if ((str[read_pos] == '"' || str[read_pos] == '\'') && 
+            (!quote_type || str[read_pos] != quote_type)) {
+            str[write_pos++] = str[read_pos];
+        }
+        // Si no es una comilla o es una comilla que debemos preservar
+        else if (str[read_pos] != quote_type) {
+            str[write_pos++] = str[read_pos];
+        }
+        read_pos++;
+    }
+
+    // Rellenar el resto con \0
+    while (write_pos <= len) {
+        str[write_pos++] = '\0';
+    }
+}
+
+static int	unquote_task(t_task *node)
+{
+	int	i;
+
+	node->garb.size = count_expansions(((t_task *)node));
+	node->garb.pointers = ft_calloc(node->garb.size + 1, sizeof(void *));
+	if (node->garb.pointers == NULL)
+		return (1);
+	(node->garb.pointers)[node->garb.size] = NULL;
+	
+	unquote(node->cmd);
+//	if (add_pathname(&(node->cmd), &(node->garb), envp))
+//		return (1);
+	unquote(node->redir.infoo);
+	unquote(node->redir.outfile);
+	i = 0;
+	while ((node->argv)[i])
+	{
+		unquote((node->argv)[i]);
+		i++;
+	}
+	return(0);
+}
+
+//FIN TEMPORAL
+
 //Si retorna 1 imprimir perror(errno)
 int	expand_tree(t_tree *node, char *envp[])
 {
@@ -117,13 +181,16 @@ int	expand_tree(t_tree *node, char *envp[])
 	{
 		if(expand_task(((t_pipe *)node)->left, envp))
 			return (1);
+	//	unquote_task(((t_pipe *)node)->left);
 		if(expand_tree((t_tree *)((t_pipe *)node)->rigth, envp))
 			return (1);
+		//unquote_task((t_tree *)((t_pipe *)node)->rigth);
 	}
 	else if (node->type == TASK)
 	{
 		if(expand_task(((t_task *)node), envp))
 			return (1);
+		unquote_task(((t_task *)node));
 	}
 	return (0);
 }
