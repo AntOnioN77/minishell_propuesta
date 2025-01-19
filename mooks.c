@@ -221,18 +221,14 @@ int executor(t_tree *node, char **envp)
 int	search_var(char **envp, const char* var)
 {
 	int pos;
-	char *subpath;
 
 	pos = 0;
 	while (envp[pos])
 	{
-		subpath = ft_substr(envp[pos], 0, 4);
-		if (ft_strcmp(subpath, var) == 0)
+		if (ft_strncmp(envp[pos], var, ft_strlen(var)) == 0)
 		{
-			free(subpath);
 			return (pos);
 		}
-		free(subpath);
 		pos++;
 	}
 	return (-1);
