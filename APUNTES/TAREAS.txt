@@ -1,0 +1,11 @@
+1.crear ft_getnvp() buena
+2.0.Seleccionar test que tengan mas sentido
+2.1.crear un nuevo archivo parse-test.check para la nueva salida esperada
+2.Crearregla test en makefile.
+	debe:
+	-ejecutar en bash: extern VAR=value, y las otras variables para test. 
+	-compilar parse-test. con regla debug.
+	-ejecutar parse-test.
+	-hacer git dif con la salida esperada he imprimir ✅ o ❌
+	-compilar test_leaks.c
+	-ejecutar test_leaks
