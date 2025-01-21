@@ -31,97 +31,11 @@
 #include "minishell.h"
 #include <sys/wait.h>
 
-//////////////////////////////////TEST
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <string.h>
-#include <sys/resource.h>
-#include <errno.h>
-
-void print_fd_info() {
-    struct rlimit rlim;
-    char fd_path[256];
-    char target_path[1024];
-    DIR *dir;
-    struct dirent *entry;
-    ssize_t len;
-    
-    // 1. Obtener límites de descriptores de archivo
-    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
-        printf("Límites de descriptores de archivo:\n");
-        printf("Soft limit: %lu\n", (unsigned long)rlim.rlim_cur);
-        printf("Hard limit: %lu\n", (unsigned long)rlim.rlim_max);
-    } else {
-        perror("Error al obtener límites");
-    }
-
-    // 2. Obtener el PID actual
-    pid_t pid = getpid();
-    
-    // 3. Construir la ruta al directorio fd del proceso
-    snprintf(fd_path, sizeof(fd_path), "/proc/%d/fd", pid);
-    
-    // 4. Abrir el directorio
-    if ((dir = opendir(fd_path)) == NULL) {
-        perror("No se puede abrir el directorio fd");
-        return;
-    }
-
-    printf("\nDescriptores de archivo abiertos para PID %d:\n", pid);
-    
-    // 5. Leer cada entrada del directorio
-    while ((entry = readdir(dir)) != NULL) {
-        // Ignorar . y ..
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-            continue;
-
-        // Construir la ruta completa al descriptor
-        char fd_full_path[512];
-        snprintf(fd_full_path, sizeof(fd_full_path), "%s/%s", fd_path, entry->d_name);
-        
-        // Leer el enlace simbólico
-        len = readlink(fd_full_path, target_path, sizeof(target_path) - 1);
-        if (len != -1) {
-            target_path[len] = '\0';
-            
-            // Obtener información adicional del descriptor
-            int fd = atoi(entry->d_name);
-            int flags = fcntl(fd, F_GETFL);
-            if (flags != -1) {
-                printf("FD %s -> %s\n", entry->d_name, target_path);
-                printf("  Modo: ");
-                if (flags & O_RDONLY) printf("lectura ");
-                if (flags & O_WRONLY) printf("escritura ");
-                if (flags & O_RDWR) printf("lectura/escritura ");
-                if (flags & O_APPEND) printf("append ");
-                printf("\n");
-            }
-        }
-    }
-    
-    closedir(dir);
-}
-
-// Función auxiliar para verificar si un descriptor está abierto
-int is_fd_open(int fd) {
-    return fcntl(fd, F_GETFL) != -1 || errno != EBADF;
-}
-
-
-////////////////////////////////////////////////////////
-
-
 //LO DE JOSE
 
 #include "minishell.h"
 #include "executor.h"
 #include <limits.h>
-
-
 
 int     ft_free_double(char **s)
 {
@@ -227,6 +141,19 @@ char	*com_path(char *cmd, char **envp)
 	return (NULL);
 }
 
+//Empezando en fd_since, cierra tosos los fd abiertos, hasta encontrar uno cerrado o inexistente. Antes de cerrar consulta si existe y esta abierto con fstat.
+void close_fds(int fd_since)
+{
+	struct stat statbuf;
+
+	while(fstat(fd_since, &statbuf)!= -1)
+	{
+		printf("cerrando fd %d\n", fd_since);
+		close(fd_since);
+		fd_since++;
+	}
+}
+
 int create_child(t_task *task, char **envp)
 {
 	int pid;
@@ -237,15 +164,7 @@ int create_child(t_task *task, char **envp)
 		return (2);
 	if (pid == 0)
 	{
-		int fd_to_check = 0;
-
-		while( fd_to_check < 20)
-		{
-			printf("\nVerificando si el descriptor %d está abierto: %s\n", 
-        	fd_to_check, 
-        	is_fd_open(fd_to_check) ? "Sí" : "No");
-			fd_to_check++;
-		}
+		close_fds(3);
 		pathcmd = com_path(task->cmd, envp);
 		if (pathcmd == NULL)
 			return (5);//error en reserva de memoria?
