@@ -6,7 +6,7 @@
 /*   By: antofern <antofern@student.42madrid.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/16 12:20:35 by antofern          #+#    #+#             */
-/*   Updated: 2025/01/19 23:32:47 by antofern         ###   ########.fr       */
+/*   Updated: 2025/01/22 00:23:34 by antofern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv, char **envp)
 			perror("expandtree:");//esta gestion de error es muy mejorable
 //		check_tree(*tree); // tal vez implementemos esta funcion para buscar errores
 //		print_tree(tree, 30);
-		if (executor(tree, envp) == 0)
+		if (executor(tree, envp) == 0)//capturar y gestionar error de executor
             wait_all(tree);
 //		error = execute(tree, envp);
 		free(line);

@@ -141,7 +141,9 @@ char	*com_path(char *cmd, char **envp)
 	return (NULL);
 }
 
-//Empezando en fd_since, cierra tosos los fd abiertos, hasta encontrar uno cerrado o inexistente. Antes de cerrar consulta si existe y esta abierto con fstat.
+//Empezando en fd_since, cierra tosos los fd abiertos,
+//hasta encontrar uno cerrado o inexistente. Antes de cerrar consulta
+//si existe y esta abierto con fstat.
 void close_fds(int fd_since)
 {
 	struct stat statbuf;
@@ -158,6 +160,7 @@ int create_child(t_task *task, char **envp)
 {
 	int pid;
 	char *pathcmd;
+	int		err;
 
 	pid = fork();
 	if (pid == -1)
@@ -169,8 +172,10 @@ int create_child(t_task *task, char **envp)
 		if (pathcmd == NULL)
 			return (5);//error en reserva de memoria?
 		execve(pathcmd, task->argv, envp);
+		err = errno;
+		close_fds(0);
 		free(pathcmd);
-		exit(EXIT_FAILURE);
+		exit(err);
 	}
 	task->pid = pid;
 	return(0);
@@ -181,6 +186,7 @@ int exec_pipe(t_pipe *pipe_node, char **envp)
 	int previous_stdin;
     int original_stdout;
 	int pipefd[2];
+	int	err;
 
 	previous_stdin = dup(STDIN_FILENO);
 	original_stdout = dup(STDOUT_FILENO);
@@ -189,14 +195,18 @@ int exec_pipe(t_pipe *pipe_node, char **envp)
 	{
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
-		executor((t_tree *)pipe_node->left, envp);
+		err = executor((t_tree *)pipe_node->left, envp);
+		if(err != 0)
+			return (err);
 		dup2(original_stdout, STDOUT_FILENO);
 	}
 	if (pipe_node->rigth) 
 	{
 			dup2(pipefd[0], STDIN_FILENO);
 			close(pipefd[0]);
-			executor(pipe_node->rigth, envp);
+			err = executor(pipe_node->rigth, envp);
+			if(err != 0)
+				return (err);
 			dup2(previous_stdin, STDIN_FILENO);
 	}
 	close(previous_stdin);
