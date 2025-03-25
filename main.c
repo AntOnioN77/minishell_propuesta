@@ -5,98 +5,93 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: antofern <antofern@student.42madrid.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/01/16 12:20:35 by antofern          #+#    #+#             */
-/*   Updated: 2025/01/22 00:23:34 by antofern         ###   ########.fr       */
+/*   Created: 2025/03/24 20:33:54 by jperez-r          #+#    #+#             */
+/*   Updated: 2025/03/25 15:10:07 by antofern         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
-//compilacion  cc -g3 -Wall -Wextra -Werror minishell.c expansor.c -L. -lft -lreadline
 #include "minishell.h"
-/*
-// Funcion pensada para aligerar lineas del main, no introducida y requiere una revision intensiva
-int command_flow(char **envp) //la gestion de errores de esta funcion es muy provisional
-{
-	char 	*line;
-	t_tree	*tree;
-	int		error;
+#include "executor.h"
 
-	error = 0;
-	while(error = 0)
-	{
-		line = readline("mini$hell>");
-		if(!line)
-		{
-			perror("readline:");
-			return (1);
-		}
-		tree = processline(line);
-		if (tree == NULL)
-		{
-			free(line);
-			return (1);
-		}
-		error = execline(tree, envp);
-		if (error) //execline debe liberar los nodos desde las hojas hacia arriba. 
-		{
-			free(line);
-			free_tree(tree);
-		}
-	}
-	return (error);
+/**
+ * status_control - Actualiza la variable de estado del shell.
+ * @status: Código de estado retornado por un proceso hijo.
+ * @environ: Estructura del entorno del shell.
+ *
+ * Esta función calcula el código de estado apropiado, lo convierte a una cadena
+ * y actualiza la variable de entorno `?`. Modifica el entorno al cambiar el valor
+ * de la variable `?`. No retorna ningún valor.
+ */
+void	status_control(int status, t_environ *environ)
+{
+	char	*str_status;
+
+	str_status = NULL;
+	if (((((status) & 0x7f) + 1) >> 1) > 0)
+		str_status = ft_itoa(((status) & 0x7f) + IS_SIGNAL);
+	else
+		str_status = ft_itoa(((status) & 0xff00) >> 8);
+	change_var("?", str_status, environ);
+	free(str_status);
 }
 
-*/
-
-
-int main(int argc, char **argv, char **envp)
+/**
+ * shell_cycle - Ejecuta un ciclo del shell.
+ * @tree: Árbol de comandos a ejecutar.
+ * @environ: Estructura del entorno del shell.
+ *
+ * Esta función configura las señales, construye el árbol de comandos, ejecuta
+ * los comandos y maneja el estado del shell. Modifica el árbol de comandos y
+ * el entorno según sea necesario. No retorna ningún valor.
+ */
+void	shell_cycle(t_tree *tree, t_environ *environ)
 {
-	char 	*line;
-	t_tree	*tree;
-	int		error;
-	//char	**new_envp;
-	
-	//Para silenciar warning.
-	if (argc != 1 || !argv)
-		return(0);
+	int		status;
 
-	error = 0;
-	while(error == 0)
+	signal_conf();
+	if (handlerr(get_cmd_tree(&tree, environ), &tree, environ))
+		return ;
+	if (handlerr(non_pipable_builtin(tree, environ), &tree, environ))
+		return ;
+	if (0 == handlerr(executor(tree, environ, 0, 1), &tree, environ))
 	{
-		line = readline("mini$hell>");
-		if(!line)
+		status = wait_all(tree);
+		if (g_ctrlc == SIGINT)
 		{
-			perror("readline:");
-			return (1);
+			write(1, "\n", 1);
+			change_var("?", "130", environ);
 		}
-		tree = processline(line);
-		if (tree == NULL)
-		{
-//			perror("processline:");
-			rl_clear_history();
-			free(line);
-			return (1);
-		}
-		if(expand_tree(tree, envp))
-			perror("expandtree:");//esta gestion de error es muy mejorable
-//		check_tree(*tree); // tal vez implementemos esta funcion para buscar errores
-//		print_tree(tree, 30);
-		if (executor(tree, envp) == 0)//capturar y gestionar error de executor
-            wait_all(tree);
-//		error = execute(tree, envp);
-		free(line);
+		else
+			status_control(status, environ);
+		close_fds(3);
 		free_tree(tree);
 	}
-	return (error);
 }
 
+/**
+ * main - Punto de entrada principal del programa.
+ * @argc: Número de argumentos pasados al programa.
+ * @argv: Lista de argumentos pasados al programa.
+ * @envp: Lista de variables de entorno heredadas.
+ *
+ * Esta función inicializa el entorno del shell, verifica argumentos no válidos
+ * y ejecuta el ciclo principal del shell. Retorna 0 si el programa finaliza correctamente,
+ * o 1 si hay un error con los argumentos.
+ */
+int	main(int argc, char **argv, char **envp)
+{
+	t_tree		*tree;
+	t_environ	environ;
 
-
-/*---------------------------EJECUTANDO_EL_ARBOL-------------------------------------------------------------------------
-ªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª*/
-
-//int execline(t_tree)//debe ejecutar y liberar cada nodo del arbol, en los nodos typo task, y finalmente liberar el
-//nodo inicial recibido.
-
-//int check_tree() debe comprobar que ningun nodo del arbol es null. Los elementos contenidos en un nodo task, si pueden ser null.
-//Si alguno de los nodos es NULL libera todo el arbol, la linea y finaliza el programa mostrando un error.
+	tree = NULL;
+	if (argc > 1)
+	{
+		ft_putstr_fd("Minishell doesn't admit arguments like: ", 2);
+		ft_putstr_fd(argv[1], 2);
+		return (1);
+	}
+	handlerr(create_envp(envp, &environ), &tree, &environ);
+	while (1)
+		shell_cycle(tree, &environ);
+	return (0);
+}
